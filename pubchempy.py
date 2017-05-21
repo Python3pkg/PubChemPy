@@ -6,9 +6,9 @@ Python interface for the PubChem PUG REST service.
 https://github.com/mcs07/PubChemPy
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
+
+
+
 
 import functools
 import json
@@ -24,8 +24,10 @@ try:
     from urllib.parse import quote, urlencode
     from urllib.request import urlopen
 except ImportError:
-    from urllib import urlencode
-    from urllib2 import quote, urlopen, HTTPError
+    from urllib.parse import urlencode
+    from urllib.parse import quote
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
 
 try:
     from itertools import zip_longest
@@ -47,7 +49,7 @@ log.addHandler(logging.NullHandler())
 if sys.version_info[0] == 3:
     text_types = str, bytes
 else:
-    text_types = basestring,
+    text_types = str,
 
 
 class CompoundIdType(object):
@@ -249,7 +251,7 @@ def request(identifier, namespace='cid', domain='compound', operation=None, outp
     if not isinstance(identifier, text_types):
         identifier = ','.join(str(x) for x in identifier)
     # Filter None values from kwargs
-    kwargs = dict((k, v) for k, v in kwargs.items() if v is not None)
+    kwargs = dict((k, v) for k, v in list(kwargs.items()) if v is not None)
     # Build API URL
     urlid, postdata = None, None
     if namespace == 'sourceid':
@@ -260,7 +262,7 @@ def request(identifier, namespace='cid', domain='compound', operation=None, outp
         urlid = quote(identifier.encode('utf8'))
     else:
         postdata = urlencode([(namespace, identifier)]).encode('utf8')
-    comps = filter(None, [API_BASE, domain, searchtype, namespace, urlid, operation, output])
+    comps = [_f for _f in [API_BASE, domain, searchtype, namespace, urlid, operation, output] if _f]
     apiurl = '/'.join(comps)
     if kwargs:
         apiurl += '?%s' % urlencode(kwargs)
@@ -774,12 +776,12 @@ class Compound(object):
     @property
     def atoms(self):
         """List of :class:`Atoms <pubchempy.Atom>` in this Compound."""
-        return sorted(self._atoms.values(), key=lambda x: x.aid)
+        return sorted(list(self._atoms.values()), key=lambda x: x.aid)
 
     @property
     def bonds(self):
         """List of :class:`Bonds <pubchempy.Bond>` between :class:`Atoms <pubchempy.Atom>` in this Compound."""
-        return sorted(self._bonds.values(), key=lambda x: (x.aid1, x.aid2))
+        return sorted(list(self._bonds.values()), key=lambda x: (x.aid1, x.aid2))
 
     @memoized_property
     def synonyms(self):
@@ -1026,7 +1028,7 @@ class Compound(object):
 
 def _parse_prop(search, proplist):
     """Extract property value from record using the given urn search filter."""
-    props = [i for i in proplist if all(item in i['urn'].items() for item in search.items())]
+    props = [i for i in proplist if all(item in list(i['urn'].items()) for item in list(search.items()))]
     if len(props) > 0:
         return props[0]['value'][list(props[0]['value'].keys())[0]]
 
